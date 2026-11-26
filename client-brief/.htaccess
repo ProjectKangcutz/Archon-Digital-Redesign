@@ -1,0 +1,13 @@
+# Proteksi file internal jika subdomain belum mengarah langsung ke folder public/
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Blokir akses langsung ke direktori dan file sensitif
+  RewriteRule ^(app|bin|database|storage)/ - [F,L]
+  RewriteRule ^(\.env|\.env\.example|README\.md)$ - [F,L]
+
+  # Arahkan permintaan yang belum masuk ke public/ agar masuk ke public/
+  RewriteCond %{REQUEST_URI} !^/public/
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
