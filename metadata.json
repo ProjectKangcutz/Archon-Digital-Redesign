@@ -1,0 +1,6 @@
+{
+  "name": "ArchonDigital",
+  "description": "Jasa pembuatan website profesional untuk UMKM, company profile, toko online, dan website custom mulai Rp 500 ribu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
