@@ -63,7 +63,13 @@ final class PublicBriefController
             exit;
         }
 
-        RateLimiter::hit($bucketKey, $maxAttempts, $windowSeconds);
+        if (!RateLimiter::attempt($bucketKey, $maxAttempts, $windowSeconds)) {
+            $_SESSION['brief_errors'] = ['_global' => 'Batas pengiriman formulir sementara tercapai. Silakan tunggu beberapa menit sebelum mengirim kembali atau hubungi kami melalui WhatsApp.'];
+            $_SESSION['brief_old'] = $_POST;
+            header('Location: /');
+            exit;
+        }
+
         $referenceCode = BriefService::create($result['data']);
 
         if ($submissionNonce !== '') {

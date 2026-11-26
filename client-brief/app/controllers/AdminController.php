@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 final class AdminController
 {
+    public function __construct()
+    {
+        SecurityService::sendNoCacheHeaders();
+    }
+
     public function showLogin(): void
     {
         if (AuthMiddleware::check()) {

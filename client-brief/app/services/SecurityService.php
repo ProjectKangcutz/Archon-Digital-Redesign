@@ -48,6 +48,17 @@ final class SecurityService
         }
     }
 
+    public static function sendNoCacheHeaders(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('Cache-Control: no-store, private, max-age=0', true);
+        header('Pragma: no-cache', true);
+        header('Expires: 0', true);
+    }
+
     public static function startSecureSession(array $sessionConfig): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {

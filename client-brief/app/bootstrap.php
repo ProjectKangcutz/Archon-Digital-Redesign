@@ -89,6 +89,12 @@ if (PHP_SAPI !== 'cli') {
     date_default_timezone_set('Asia/Jakarta');
     SecurityService::sendSecurityHeaders();
     SecurityService::startSecureSession(app_config('session'));
+
+    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+    if (preg_match('#(?:^|/)admin(?:/|$)#', $scriptName) === 1 || preg_match('#(?:^|/)admin(?:/|$)#', $requestUri) === 1) {
+        SecurityService::sendNoCacheHeaders();
+    }
 }
 
 /**

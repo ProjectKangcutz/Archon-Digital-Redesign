@@ -32,6 +32,7 @@ final class AuthMiddleware
 
     public static function requireAdmin(): array
     {
+        SecurityService::sendNoCacheHeaders();
         if (!self::check()) {
             header('Location: /admin/login.php');
             exit;
