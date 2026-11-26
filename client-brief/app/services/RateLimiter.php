@@ -267,9 +267,17 @@ final class RateLimiter
             }
 
             $raw = stream_get_contents($fp);
-            $data = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
-            if (!is_array($data)) {
-                SecurityService::logError('RateLimiter::isBlockedFile encountered invalid bucket state.');
+            if ($raw === false) {
+                SecurityService::logError('RateLimiter::isBlockedFile failed to read bucket file.');
+                return true; // Fail closed
+            }
+            if (trim($raw) === '') {
+                return false;
+            }
+
+            $data = json_decode($raw, true);
+            if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) {
+                SecurityService::logError('RateLimiter::isBlockedFile encountered corrupted bucket JSON.');
                 return true; // Fail closed
             }
 
@@ -306,9 +314,23 @@ final class RateLimiter
             }
 
             $raw = stream_get_contents($fp);
-            $data = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
+            if ($raw === false) {
+                SecurityService::logError('RateLimiter::attemptFile failed to read bucket file.');
+                return false; // Fail closed
+            }
 
-            if (!is_array($data)) {
+            $isNewOrEmpty = (trim($raw) === '');
+            $data = null;
+            if (!$isNewOrEmpty) {
+                $decoded = json_decode($raw, true);
+                if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
+                    SecurityService::logError('RateLimiter::attemptFile encountered corrupted bucket JSON.');
+                    return false; // Fail closed without overwriting corrupted data
+                }
+                $data = $decoded;
+            }
+
+            if ($isNewOrEmpty) {
                 $data = [
                     'attempts' => 1,
                     'first_attempt_at' => $now,
@@ -366,10 +388,25 @@ final class RateLimiter
             }
 
             $raw = stream_get_contents($fp);
-            $data = is_string($raw) && $raw !== '' ? json_decode($raw, true) : null;
-            $hasActiveLock = is_array($data) && !empty($data['locked_until']) && (int) $data['locked_until'] > $now;
+            if ($raw === false) {
+                SecurityService::logError('RateLimiter::hitFile failed to read bucket file.');
+                return false; // Fail closed
+            }
 
-            if (!is_array($data) || (!$hasActiveLock && ($now - (int) ($data['first_attempt_at'] ?? 0)) > $windowSeconds)) {
+            $isNewOrEmpty = (trim($raw) === '');
+            $data = null;
+            if (!$isNewOrEmpty) {
+                $decoded = json_decode($raw, true);
+                if (!is_array($decoded) || json_last_error() !== JSON_ERROR_NONE) {
+                    SecurityService::logError('RateLimiter::hitFile encountered corrupted bucket JSON.');
+                    return false; // Fail closed without overwriting corrupted data
+                }
+                $data = $decoded;
+            }
+
+            $hasActiveLock = !$isNewOrEmpty && is_array($data) && !empty($data['locked_until']) && (int) $data['locked_until'] > $now;
+
+            if ($isNewOrEmpty || (!$hasActiveLock && ($now - (int) ($data['first_attempt_at'] ?? 0)) > $windowSeconds)) {
                 $data = [
                     'attempts' => 1,
                     'first_attempt_at' => $now,

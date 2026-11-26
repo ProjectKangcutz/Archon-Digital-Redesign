@@ -27,7 +27,13 @@ final class AuthService
         }
 
         if ($cleanEmail === '' || $password === '' || filter_var($cleanEmail, FILTER_VALIDATE_EMAIL) === false) {
-            RateLimiter::hit($ipBucket, $maxAttempts, $windowSeconds);
+            if (!RateLimiter::hit($ipBucket, $maxAttempts, $windowSeconds)) {
+                SecurityService::logError('AuthService::attemptLogin stopped because IP rate-limit storage failed.');
+                return [
+                    'ok' => false,
+                    'error' => 'Layanan autentikasi sedang mengalami gangguan sementara. Silakan coba kembali beberapa saat lagi.',
+                ];
+            }
             return [
                 'ok' => false,
                 'error' => 'Email atau kata sandi tidak valid.',
@@ -43,8 +49,15 @@ final class AuthService
         $passwordOk = password_verify($password, $hashToVerify);
 
         if (!$admin || !$passwordOk) {
-            RateLimiter::hit($ipBucket, $maxAttempts, $windowSeconds);
-            RateLimiter::hit($emailBucket, $maxAttempts, $windowSeconds);
+            $ipHitOk = RateLimiter::hit($ipBucket, $maxAttempts, $windowSeconds);
+            $emailHitOk = RateLimiter::hit($emailBucket, $maxAttempts, $windowSeconds);
+            if (!$ipHitOk || !$emailHitOk) {
+                SecurityService::logError('AuthService::attemptLogin stopped because rate-limit storage failed.');
+                return [
+                    'ok' => false,
+                    'error' => 'Layanan autentikasi sedang mengalami gangguan sementara. Silakan coba kembali beberapa saat lagi.',
+                ];
+            }
             return [
                 'ok' => false,
                 'error' => 'Email atau kata sandi tidak valid.',
